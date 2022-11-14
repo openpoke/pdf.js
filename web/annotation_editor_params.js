@@ -31,6 +31,9 @@ class AnnotationEditorParams {
     editorInkColor,
     editorInkThickness,
     editorInkOpacity,
+    editorPolygonColor,
+    editorPolygonThickness,
+    editorPolygonOpacity,
   }) {
     editorFreeTextFontSize.addEventListener("input", evt => {
       this.eventBus.dispatch("switchannotationeditorparams", {
@@ -67,6 +70,27 @@ class AnnotationEditorParams {
         value: editorInkOpacity.valueAsNumber,
       });
     });
+    editorPolygonColor.addEventListener("input", evt => {
+      this.eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.POLYGON_COLOR,
+        value: editorPolygonColor.value,
+      });
+    });
+    editorPolygonThickness.addEventListener("input", evt => {
+      this.eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.POLYGON_THICKNESS,
+        value: editorPolygonThickness.valueAsNumber,
+      });
+    });
+    editorPolygonOpacity.addEventListener("input", evt => {
+      this.eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.POLYGON_OPACITY,
+        value: editorPolygonOpacity.valueAsNumber,
+      });
+    });
 
     this.eventBus._on("annotationeditorparamschanged", evt => {
       for (const [type, value] of evt.details) {
@@ -85,6 +109,15 @@ class AnnotationEditorParams {
             break;
           case AnnotationEditorParamsType.INK_OPACITY:
             editorInkOpacity.value = value;
+            break;
+          case AnnotationEditorParamsType.POLYGON_COLOR:
+            editorPolygonColor.value = value;
+            break;
+          case AnnotationEditorParamsType.POLYGON_THICKNESS:
+            editorPolygonThickness.value = value;
+            break;
+          case AnnotationEditorParamsType.POLYGON_OPACITY:
+            editorPolygonOpacity.value = value;
             break;
         }
       }

@@ -285,6 +285,10 @@ class AnnotationFactory {
           promises.push(
             InkAnnotation.createNewAnnotation(xref, annotation, dependencies)
           );
+        case AnnotationEditorType.POLYGON:
+          promises.push(
+            PolygonAnnotation.createNewAnnotation(xref, annotation, dependencies)
+          );
       }
     }
 
@@ -314,6 +318,11 @@ class AnnotationFactory {
         case AnnotationEditorType.INK:
           promises.push(
             InkAnnotation.createNewPrintAnnotation(xref, annotation)
+          );
+          break;
+        case AnnotationEditorType.POLYGON:
+          promises.push(
+            PolygonAnnotation.createNewPrintAnnotation(xref, annotation)
           );
           break;
       }
