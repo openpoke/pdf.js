@@ -251,6 +251,9 @@ class PolygonEditor extends AnnotationEditor {
     this.#observer = null;
 
     super.remove();
+
+    // fire up an event
+    document.dispatchEvent((new CustomEvent('polygonsRemoved', { detail: this.serialize() })));
   }
 
   /** @inheritdoc */
@@ -381,7 +384,6 @@ class PolygonEditor extends AnnotationEditor {
     this.ctx.strokeRect(...this.#lastPoint);
 
     this.currentPath.push(this.#lastPoint);
-
   }
 
 
@@ -459,6 +461,9 @@ class PolygonEditor extends AnnotationEditor {
 
     super.commit();
 
+    // fire up an event
+    this.#fireEvents();
+
     this.isEditing = false;
     this.disableEditMode();
 
@@ -478,6 +483,7 @@ class PolygonEditor extends AnnotationEditor {
     // After the div has been moved in the DOM, the focus may have been stolen
     // by document.body, hence we just keep it here.
     this.div.focus();
+
   }
 
   /** @inheritdoc */
@@ -730,30 +736,6 @@ class PolygonEditor extends AnnotationEditor {
     );
   }
 
-//  /**
-//   * Convert the output of fitCurve in some Path2D.
-//   * @param {Arra<Array<number>} bezier
-//   * @returns {Path2D}
-//   */
-//  static #buildPath2D(bezier) {
-//    const path2D = new Path2D();
-//    for (let i = 0, ii = bezier.length; i < ii; i++) {
-//      const [first, control1, control2, second] = bezier[i];
-//      if (i === 0) {
-//        path2D.moveTo(...first);
-//      }
-//      path2D.bezierCurveTo(
-//        control1[0],
-//        control1[1],
-//        control2[0],
-//        control2[1],
-//        second[0],
-//        second[1]
-//      );
-//    }
-//    return path2D;
-//  }
-
   /**
    * Transform and serialize the paths.
    * @param {number} s - scale factor
@@ -766,123 +748,8 @@ class PolygonEditor extends AnnotationEditor {
     const paths = [];
     const padding = this.thickness / 2;
     let buffer, points;
-/*
-    for (const bezier of this.paths) {
-      buffer = [];
-      points = [];
-      for (let i = 0, ii = bezier.length; i < ii; i++) {
-        const [first, control1, control2, second] = bezier[i];
-        const p10 = s * (first[0] + tx) + padding;
-        const p11 = h - s * (first[1] + ty) - padding;
-        const p20 = s * (control1[0] + tx) + padding;
-        const p21 = h - s * (control1[1] + ty) - padding;
-        const p30 = s * (control2[0] + tx) + padding;
-        const p31 = h - s * (control2[1] + ty) - padding;
-        const p40 = s * (second[0] + tx) + padding;
-        const p41 = h - s * (second[1] + ty) - padding;
 
-        if (i === 0) {
-          buffer.push(p10, p11);
-          points.push(p10, p11);
-        }
-        buffer.push(p20, p21, p30, p31, p40, p41);
-        this.#extractPointsOnBezier(
-          p10,
-          p11,
-          p20,
-          p21,
-          p30,
-          p31,
-          p40,
-          p41,
-          NUMBER_OF_POINTS_ON_BEZIER_CURVE,
-          points
-        );
-      }
-      paths.push({ bezier: buffer, points });
-    }
-*/
-    return paths;
-  }
-
-  /**
-   * Extract n-1 points from the cubic Bezier curve.
-   * @param {number} p10
-   * @param {number} p11
-   * @param {number} p20
-   * @param {number} p21
-   * @param {number} p30
-   * @param {number} p31
-   * @param {number} p40
-   * @param {number} p41
-   * @param {number} n
-   * @param {Array<number>} points
-   * @returns {undefined}
-   */
-  #extractPointsOnBezier(p10, p11, p20, p21, p30, p31, p40, p41, n, points) {
-    // If we can save few points thanks to the flatness we must do it.
-    if (this.#isAlmostFlat(p10, p11, p20, p21, p30, p31, p40, p41)) {
-      points.push(p40, p41);
-      return;
-    }
-
-    // Apply the de Casteljau's algorithm in order to get n points belonging
-    // to the Bezier's curve:
-    // https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm
-
-    // The first point is the last point of the previous Bezier curve
-    // so no need to push the first point.
-    for (let i = 1; i < n - 1; i++) {
-      const t = i / n;
-      const mt = 1 - t;
-
-      let q10 = t * p10 + mt * p20;
-      let q11 = t * p11 + mt * p21;
-
-      let q20 = t * p20 + mt * p30;
-      let q21 = t * p21 + mt * p31;
-
-      const q30 = t * p30 + mt * p40;
-      const q31 = t * p31 + mt * p41;
-
-      q10 = t * q10 + mt * q20;
-      q11 = t * q11 + mt * q21;
-
-      q20 = t * q20 + mt * q30;
-      q21 = t * q21 + mt * q31;
-
-      q10 = t * q10 + mt * q20;
-      q11 = t * q11 + mt * q21;
-
-      points.push(q10, q11);
-    }
-
-    points.push(p40, p41);
-  }
-
-  /**
-   * Check if a cubic Bezier curve is almost flat.
-   * @param {number} p10
-   * @param {number} p11
-   * @param {number} p20
-   * @param {number} p21
-   * @param {number} p30
-   * @param {number} p31
-   * @param {number} p40
-   * @param {number} p41
-   * @returns {boolean}
-   */
-  #isAlmostFlat(p10, p11, p20, p21, p30, p31, p40, p41) {
-    // For reference:
-    //   https://jeremykun.com/tag/bezier-curves/
-    const tol = 10;
-
-    const ax = (3 * p20 - 2 * p10 - p40) ** 2;
-    const ay = (3 * p21 - 2 * p11 - p41) ** 2;
-    const bx = (3 * p30 - p10 - 2 * p40) ** 2;
-    const by = (3 * p31 - p11 - 2 * p41) ** 2;
-
-    return Math.max(ax, bx) + Math.max(ay, by) <= tol;
+    return this.paths;
   }
 
   /**
@@ -1028,6 +895,19 @@ class PolygonEditor extends AnnotationEditor {
     return editor;
   }
 
+  #fireEvents() {
+    let serialized = this.serialize();
+
+    if (serialized == null) {
+      return;
+    }
+
+    for (const path of this.paths) {
+      serialized["paths"] = path;
+      document.dispatchEvent((new CustomEvent('polygonsAdded', { detail: serialized })));
+    }
+  }
+
   /** @inheritdoc */
   serialize() {
     if (this.isEmpty()) {
@@ -1045,6 +925,7 @@ class PolygonEditor extends AnnotationEditor {
       color,
       thickness: this.thickness,
       opacity: this.opacity,
+      scale: this.scaleFactor / this.parent.scaleFactor,
       paths: this.#serializePaths(
         this.scaleFactor / this.parent.scaleFactor,
         this.translationX,
