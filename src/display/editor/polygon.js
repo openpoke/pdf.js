@@ -7,6 +7,7 @@ import {
 import { AnnotationEditor } from "./editor.js";
 import { opacityToHex } from "./tools.js";
 import { fitCurve } from "pdfjs-fitCurve";
+//import { bindEvents } from "./tools.js";
 
 
 // The dimensions of the resizer is 15x15:
@@ -253,7 +254,10 @@ class PolygonEditor extends AnnotationEditor {
     super.remove();
 
     // fire up an event
-    document.dispatchEvent((new CustomEvent('polygonsRemoved', { detail: this.serialize() })));
+    const serialized = this.serialize();
+    if (serialized !== null ){
+      document.dispatchEvent((new CustomEvent('polygonsRemoved', { detail: this.serialize() })));
+    }
   }
 
   /** @inheritdoc */
@@ -275,7 +279,8 @@ class PolygonEditor extends AnnotationEditor {
     }
 
     super.disableEditMode();
-    this.div.draggable = !this.isEmpty();
+   // disable drag
+    this.div.draggable = false; //!this.isEmpty();
     this.div.classList.remove("editing");
 
     this.canvas.removeEventListener("pointerdown", this.#boundCanvasPointerdown);
@@ -284,14 +289,15 @@ class PolygonEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   onceAdded() {
-    this.div.draggable = !this.isEmpty();
+   // disable drag
+    this.div.draggable = false; //!this.isEmpty();
   }
 
   /** @inheritdoc */
   isEmpty() {
     return (
       this.paths.length === 0 ||
-      (this.paths.length === 1 && this.paths[0].length === 0)
+      (this.paths.length === 1 && this.#rectangleDrawn() === false)
     );
   }
 
@@ -360,6 +366,7 @@ class PolygonEditor extends AnnotationEditor {
         this.ctx.strokeRect(this.currentPath[0][0], this.currentPath[0][1], width, height);
         this.#lastPoint = null;
         this.ctx.stroke();
+
       }
 
       window.requestAnimationFrame(this.#requestFrameCallback);
@@ -382,7 +389,6 @@ class PolygonEditor extends AnnotationEditor {
     this.#lastPoint = [this.currentPath[0][0], this.currentPath[0][1], width, height];
 
     this.ctx.strokeRect(...this.#lastPoint);
-
     this.currentPath.push(this.#lastPoint);
   }
 
@@ -408,7 +414,9 @@ class PolygonEditor extends AnnotationEditor {
     if (x !== lastX || y !== lastY) {
       this.currentPath.push(coordinates);
     }
-    this.ctx.strokeRect(...coordinates);
+//    this.ctx.strokeRect(...coordinates);
+      this.ctx.fillStyle = "green";
+      this.ctx.fillRect(...coordinates);
 
     this.currentPath.length = 0;
 
@@ -447,7 +455,8 @@ class PolygonEditor extends AnnotationEditor {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.#updateTransform();
     for (const path of this.paths) {
-        this.ctx.strokeRect(...path);
+      this.ctx.fillStyle  = `${this.color}${opacityToHex(this.opacity)}`;
+      this.ctx.fillRect(...path);
     }
   }
 
@@ -540,7 +549,7 @@ class PolygonEditor extends AnnotationEditor {
 
       // Since the ink editor covers all of the page and we want to be able
       // to select another editor, we just put this one in the background.
-      this.setInBackground();
+//      this.setInBackground();
     }
   }
 
@@ -549,8 +558,9 @@ class PolygonEditor extends AnnotationEditor {
    * @param {PointerEvent} event
    */
   canvasPointerleave(event) {
+  console.log("leave");
     this.#endDrawing(event);
-    this.setInBackground();
+//    this.setInBackground();
   }
 
   /**
@@ -570,6 +580,16 @@ class PolygonEditor extends AnnotationEditor {
     );
 
     this.parent.addToAnnotationStorage(this);
+
+    if (this.#rectangleDrawn){
+      this.commit();
+    }
+  }
+
+  #rectangleDrawn() {
+    let lastPoint = this.paths.at(-1);
+
+    return lastPoint[2] > 0 && lastPoint[3] > 0;
   }
 
   /**
@@ -624,6 +644,7 @@ class PolygonEditor extends AnnotationEditor {
     }
 
     super.render();
+//    bindEvents(super, this.div, ["dragstop"]);
 
     PolygonEditor._l10nPromise
       .get("editor_ink2_aria_label")
@@ -737,22 +758,6 @@ class PolygonEditor extends AnnotationEditor {
   }
 
   /**
-   * Transform and serialize the paths.
-   * @param {number} s - scale factor
-   * @param {number} tx - abscissa of the translation
-   * @param {number} ty - ordinate of the translation
-   * @param {number} h - height of the bounding box
-   */
-  #serializePaths(s, tx, ty, h) {
-    const NUMBER_OF_POINTS_ON_BEZIER_CURVE = 4;
-    const paths = [];
-    const padding = this.thickness / 2;
-    let buffer, points;
-
-    return this.paths;
-  }
-
-  /**
    * Get the bounding box containing all the paths.
    * @returns {Array<number>}
    */
@@ -845,53 +850,51 @@ class PolygonEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   static deserialize(data, parent) {
-    const editor = super.deserialize(data, parent);
+  console.log("been here");
 
-    editor.thickness = data.thickness;
+    const editor = new this.prototype.constructor({
+      parent,
+      id: parent.getNextId(),
+    });
+    editor.rotation = data.rotation;
+
+    let [pageWidth, pageHeight] = parent.pageDimensions;
+    let [x, y, width, height] = editor.getRectInCurrentCoords(
+      data.rect,
+      pageHeight
+    );
+    editor.x = x / pageWidth - 1 ; // don't know ehy
+    editor.y = y / pageHeight - 1; // don't know ehy
+    editor.width = width / pageWidth;
+    editor.height = height / pageHeight;
+
+
     editor.color = Util.makeHexColor(...data.color);
     editor.opacity = data.opacity;
+    editor.paths.push(data.paths);
 
-    const [pageWidth, pageHeight] = parent.pageDimensions;
-    const width = editor.width * pageWidth;
-    const height = editor.height * pageHeight;
-    const scaleFactor = parent.scaleFactor;
+    editor.rotation = data.rotation;
+    editor.thickness = data.thickness;
+
     const padding = data.thickness / 2;
+
+    [pageWidth, pageHeight] = parent.pageDimensions;
+    width = editor.width * pageWidth;
+    height = editor.height * pageHeight;
+    const scaleFactor = parent.scaleFactor;
 
     editor.#aspectRatio = width / height;
     editor.#disableEditing = true;
     editor.#realWidth = Math.round(width);
     editor.#realHeight = Math.round(height);
 
-    for (const { bezier } of data.paths) {
-      const path = [];
-      editor.paths.push(path);
-      let p0 = scaleFactor * (bezier[0] - padding);
-      let p1 = scaleFactor * (height - bezier[1] - padding);
-      for (let i = 2, ii = bezier.length; i < ii; i += 6) {
-        const p10 = scaleFactor * (bezier[i] - padding);
-        const p11 = scaleFactor * (height - bezier[i + 1] - padding);
-        const p20 = scaleFactor * (bezier[i + 2] - padding);
-        const p21 = scaleFactor * (height - bezier[i + 3] - padding);
-        const p30 = scaleFactor * (bezier[i + 4] - padding);
-        const p31 = scaleFactor * (height - bezier[i + 5] - padding);
-        path.push([
-          [p0, p1],
-          [p10, p11],
-          [p20, p21],
-          [p30, p31],
-        ]);
-        p0 = p30;
-        p1 = p31;
-      }
-//      const path2D = this.#buildPath2D(path);
-//      editor.bezierPath2D.push(path2D);
-    }
-
     const bbox = editor.#getBbox();
     editor.#baseWidth = Math.max(RESIZER_SIZE, bbox[2] - bbox[0]);
     editor.#baseHeight = Math.max(RESIZER_SIZE, bbox[3] - bbox[1]);
     editor.#setScaleFactor(width, height);
 
+    editor.render();
+    editor.rebuild();
     return editor;
   }
 
@@ -920,18 +923,14 @@ class PolygonEditor extends AnnotationEditor {
 
     const color = AnnotationEditor._colorManager.convert(this.ctx.strokeStyle);
 
+    console.log(this);
     return {
       annotationType: AnnotationEditorType.POLYGON,
       color,
       thickness: this.thickness,
       opacity: this.opacity,
       scale: this.scaleFactor / this.parent.scaleFactor,
-      paths: this.#serializePaths(
-        this.scaleFactor / this.parent.scaleFactor,
-        this.translationX,
-        this.translationY,
-        height
-      ),
+      paths: this.paths,
       pageIndex: this.parent.pageIndex,
       rect,
       rotation: this.rotation,
