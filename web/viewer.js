@@ -95,6 +95,8 @@ function getViewerConfiguration() {
       ),
       editorInkButton: document.getElementById("editorInk"),
       editorInkParamsToolbar: document.getElementById("editorInkParamsToolbar"),
+      editorPolygonButton: document.getElementById("editorPolygon"),
+      editorPolygonParamsToolbar: document.getElementById("editorPolygonParamsToolbar"),
       download: document.getElementById("download"),
     },
     secondaryToolbar: {
@@ -194,6 +196,9 @@ function getViewerConfiguration() {
       editorInkColor: document.getElementById("editorInkColor"),
       editorInkThickness: document.getElementById("editorInkThickness"),
       editorInkOpacity: document.getElementById("editorInkOpacity"),
+      editorPolygonColor: document.getElementById("editorPolygonColor"),
+      editorPolygonThickness: document.getElementById("editorPolygonThickness"),
+      editorPolygonOpacity: document.getElementById("editorPolygonOpacity"),
     },
     printContainer: document.getElementById("printContainer"),
     openFileInput:

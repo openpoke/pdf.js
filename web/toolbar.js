@@ -90,6 +90,18 @@ class Toolbar {
           },
         },
       },
+      {
+        element: options.editorPolygonButton,
+        eventName: "switchannotationeditormode",
+        eventDetails: {
+          get mode() {
+            const { classList } = options.editorPolygonButton;
+            return classList.contains("toggled")
+              ? AnnotationEditorType.NONE
+              : AnnotationEditorType.POLYGON;
+          },
+        },
+      },
     ];
     if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
       this.buttons.push({ element: options.openFile, eventName: "openfile" });
@@ -211,6 +223,8 @@ class Toolbar {
     editorFreeTextParamsToolbar,
     editorInkButton,
     editorInkParamsToolbar,
+    editorPolygonButton,
+    editorPolygonParamsToolbar,
   }) {
     const editorModeChanged = (evt, disableButtons = false) => {
       const editorButtons = [
@@ -223,6 +237,11 @@ class Toolbar {
           mode: AnnotationEditorType.INK,
           button: editorInkButton,
           toolbar: editorInkParamsToolbar,
+        },
+        {
+          mode: AnnotationEditorType.POLYGON,
+          button: editorPolygonButton,
+          toolbar: editorPolygonParamsToolbar,
         },
       ];
 

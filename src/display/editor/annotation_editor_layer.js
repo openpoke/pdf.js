@@ -26,6 +26,7 @@ import { bindEvents, KeyboardManager } from "./tools.js";
 import { AnnotationEditorType } from "../../shared/util.js";
 import { FreeTextEditor } from "./freetext.js";
 import { InkEditor } from "./ink.js";
+import { PolygonEditor } from "./polygon.js";
 
 /**
  * @typedef {Object} AnnotationEditorLayerOptions
@@ -69,8 +70,9 @@ class AnnotationEditorLayer {
       AnnotationEditorLayer._initialized = true;
       FreeTextEditor.initialize(options.l10n);
       InkEditor.initialize(options.l10n);
+      PolygonEditor.initialize(options.l10n);
     }
-    options.uiManager.registerEditorTypes([FreeTextEditor, InkEditor]);
+    options.uiManager.registerEditorTypes([FreeTextEditor, InkEditor, PolygonEditor ]);
 
     this.#uiManager = options.uiManager;
     this.annotationStorage = options.annotationStorage;
@@ -95,7 +97,12 @@ class AnnotationEditorLayer {
    */
   updateMode(mode = this.#uiManager.getMode()) {
     this.#cleanup();
-    if (mode === AnnotationEditorType.INK) {
+
+    if (mode === AnnotationEditorType.POLYGON) {
+      // We always want to an ink editor ready to draw in.
+      this.addPolygonEditorIfNeeded(false);
+      this.disableClick();
+    } else if (mode === AnnotationEditorType.INK) {
       // We always want to an ink editor ready to draw in.
       this.addInkEditorIfNeeded(false);
       this.disableClick();
@@ -109,6 +116,31 @@ class AnnotationEditorLayer {
       mode === AnnotationEditorType.FREETEXT
     );
     this.div.classList.toggle("inkEditing", mode === AnnotationEditorType.INK);
+    this.div.classList.toggle(
+      "polygonEditing", mode === AnnotationEditorType.POLYGON);
+  }
+
+  addPolygonEditorIfNeeded(isCommitting) {
+    if (
+      !isCommitting &&
+      this.#uiManager.getMode() !== AnnotationEditorType.POLYGON
+    ) {
+      return;
+    }
+
+    if (!isCommitting) {
+      // We're removing an editor but an empty one can already exist so in this
+      // case we don't need to create a new one.
+      for (const editor of this.#editors.values()) {
+        if (editor.isEmpty()) {
+          editor.setInBackground();
+          return;
+        }
+      }
+    }
+
+    const editor = this.#createAndAddNewEditor({ offsetX: 0, offsetY: 0 });
+    editor.setInBackground();
   }
 
   addInkEditorIfNeeded(isCommitting) {
@@ -230,6 +262,7 @@ class AnnotationEditorLayer {
 
     if (!this.#isCleaningUp) {
       this.addInkEditorIfNeeded(/* isCommitting = */ false);
+      this.addPolygonEditorIfNeeded(/* isCommitting = */ false);
     }
   }
 
@@ -353,6 +386,8 @@ class AnnotationEditorLayer {
         return new FreeTextEditor(params);
       case AnnotationEditorType.INK:
         return new InkEditor(params);
+      case AnnotationEditorType.POLYGON:
+        return new PolygonEditor(params);
     }
     return null;
   }
@@ -368,6 +403,8 @@ class AnnotationEditorLayer {
         return FreeTextEditor.deserialize(data, this);
       case AnnotationEditorType.INK:
         return InkEditor.deserialize(data, this);
+      case AnnotationEditorType.POLYGON:
+        return PolygonEditor.deserialize(data, this);
     }
     return null;
   }

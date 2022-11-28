@@ -69,6 +69,7 @@ const AnnotationEditorType = {
   NONE: 0,
   FREETEXT: 3,
   INK: 15,
+  POLYGON: 7
 };
 
 const AnnotationEditorParamsType = {
@@ -78,6 +79,9 @@ const AnnotationEditorParamsType = {
   INK_COLOR: 11,
   INK_THICKNESS: 12,
   INK_OPACITY: 13,
+  POLYGON_COLOR: 30,
+  POLYGON_THICKNESS: 31,
+  POLYGON_OPACITY: 32,
 };
 
 // Permission flags from Table 22, Section 7.6.3.2 of the PDF specification.

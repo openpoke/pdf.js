@@ -291,6 +291,10 @@ class AnnotationFactory {
           promises.push(
             InkAnnotation.createNewAnnotation(xref, annotation, dependencies)
           );
+        case AnnotationEditorType.POLYGON:
+          promises.push(
+            PolygonAnnotation.createNewAnnotation(xref, annotation, dependencies)
+          );
       }
     }
 
@@ -326,6 +330,11 @@ class AnnotationFactory {
             InkAnnotation.createNewPrintAnnotation(xref, annotation, {
               isOffscreenCanvasSupported,
             })
+          );
+          break;
+        case AnnotationEditorType.POLYGON:
+          promises.push(
+            PolygonAnnotation.createNewPrintAnnotation(xref, annotation)
           );
           break;
       }

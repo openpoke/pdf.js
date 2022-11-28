@@ -120,7 +120,7 @@ const defaultOptions = {
   },
   imageResourcesPath: {
     /** @type {string} */
-    value: "./images/",
+    value: "/pdfjs/web/images/",
     kind: OptionKind.VIEWER,
   },
   maxCanvasPixels: {
@@ -199,7 +199,7 @@ const defaultOptions = {
     value:
       typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
         ? "../external/bcmaps/"
-        : "../web/cmaps/",
+        : " /pdfjs/web/cmaps/ ",
     kind: OptionKind.API,
   },
   disableAutoFetch: {
@@ -262,7 +262,7 @@ const defaultOptions = {
     value:
       typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
         ? "../external/standard_fonts/"
-        : "../web/standard_fonts/",
+        : "/pdfjs/web/standard_fonts/",
     kind: OptionKind.API,
   },
   verbosity: {
@@ -281,7 +281,7 @@ const defaultOptions = {
     value:
       typeof PDFJSDev === "undefined" || !PDFJSDev.test("PRODUCTION")
         ? "../src/worker_loader.js"
-        : "../build/pdf.worker.js",
+        : "/pdfjs/build/pdf.worker.js",
     kind: OptionKind.WORKER,
   },
 };
